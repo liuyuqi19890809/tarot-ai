@@ -45,7 +45,7 @@ function renderSpreads() {
             <div class="spread-desc">${spread.description}</div>
             <div class="spread-meta">
                 <span>🎴 ${spread.cards}张牌</span>
-                <span>📍 ${spread.positions.length}个位置</span>
+                <span>📍 ${spread.positions}个位置</span>
             </div>
         `;
         card.onclick = () => selectSpread(key, card);
@@ -78,35 +78,183 @@ document.getElementById('backToSpread').onclick = () => {
     document.getElementById('step1').classList.add('active');
 };
 
-// 开始抽牌
-document.getElementById('startDrawing').onclick = () => {
-    const question = document.getElementById('questionInput').value;
+// 生成粒子特效
+function createParticles() {
+    const container = document.getElementById('particlesContainer');
+    for (let i = 0; i < 30; i++) {
+        const particle = document.createElement('div');
+        particle.className = 'particle';
+        particle.style.left = Math.random() * 100 + '%';
+        particle.style.top = Math.random() * 100 + '%';
+        particle.style.animationDelay = Math.random() * 3 + 's';
+        particle.style.animationDuration = (2 + Math.random() * 2) + 's';
+        container.appendChild(particle);
+    }
+    
+    // 添加星光
+    for (let i = 0; i < 10; i++) {
+        const star = document.createElement('div');
+        star.className = 'star-sparkle';
+        star.textContent = '✧';
+        star.style.left = (10 + Math.random() * 80) + '%';
+        star.style.top = (10 + Math.random() * 80) + '%';
+        star.style.animationDelay = Math.random() * 2 + 's';
+        container.appendChild(star);
+    }
+}
 
+// 抽牌飞行动画
+function createFlyingCard() {
+    const container = document.getElementById('drawingContainer');
+    const card = document.createElement('div');
+    card.className = 'flying-card tarot-card-back';
+    container.appendChild(card);
+    
+    setTimeout(() => {
+        card.remove();
+    }, 1500);
+}
+
+// 闪光特效
+function createFlash(element) {
+    const flash = document.createElement('div');
+    flash.className = 'card-flash';
+    element.appendChild(flash);
+    setTimeout(() => flash.remove(), 800);
+}
+
+// 解析 Coze 流式响应
+function parseCozeStreamResponse(text) {
+    const lines = text.split('\n');
+    let fullContent = '';
+    let isReadingMode = false;
+    
+    for (const line of lines) {
+        if (line.startsWith('data:')) {
+            try {
+                const data = JSON.parse(line.slice(5));
+                if (data.content) {
+                    fullContent += data.content;
+                }
+            } catch (e) {
+                // 忽略解析错误
+            }
+        }
+    }
+    
+    return fullContent;
+}
+
+// 从 Coze 响应中提取 JSON
+function extractJsonFromResponse(text) {
+    // 尝试提取 Markdown 代码块中的 JSON
+    const jsonMatch = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+        try {
+            return JSON.parse(jsonMatch[1]);
+        } catch (e) {
+            console.error('JSON parse error from code block:', e);
+        }
+    }
+    
+    // 尝试直接解析整个响应为 JSON
+    try {
+        return JSON.parse(text);
+    } catch (e) {
+        console.error('Direct JSON parse error:', e);
+    }
+    
+    // 尝试提取文本中的 JSON 对象
+    const bracketMatch = text.match(/\{[\s\S]*\}/);
+    if (bracketMatch) {
+        try {
+            return JSON.parse(bracketMatch[0]);
+        } catch (e) {
+            console.error('Bracket JSON parse error:', e);
+        }
+    }
+    
+    return null;
+}
+
+// 开始抽牌 - 调用 Coze Bot API
+document.getElementById('startDrawing').onclick = async () => {
+    const question = document.getElementById('questionInput').value;
+    const spreadConfig = spreads[selectedSpread];
+    
     document.getElementById('questionSection').style.display = 'none';
     document.getElementById('drawingSection').style.display = 'block';
     document.getElementById('step2').classList.remove('active');
     document.getElementById('step3').classList.add('active');
 
-    // 调用抽牌API
-    fetch('/api/draw', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spread_type: selectedSpread, question: question })
-    })
-    .then(res => res.json())
-    .then(data => {
-        if (data.success) {
-            setTimeout(() => showResult(data, question), 2000);
-        } else {
-            alert('抽牌失败，请重试');
-            location.reload();
+    // 创建粒子特效
+    createParticles();
+    
+    // 开始洗牌动画
+    const drawingSection = document.getElementById('drawingSection');
+    drawingSection.classList.add('shuffling');
+    
+    // 动态更新提示文字
+    const drawingText = document.getElementById('drawingText');
+    const messages = [
+        '正在连接宇宙能量，请静心等待...',
+        '✨ 洗牌中...',
+        '🔮 感知你的能量...',
+        '🌟 抽取命运之牌...',
+        '✧ 解读中...'
+    ];
+    
+    let messageIndex = 0;
+    const messageInterval = setInterval(() => {
+        messageIndex++;
+        if (messageIndex < messages.length) {
+            drawingText.textContent = messages[messageIndex];
         }
-    })
-    .catch(err => {
-        console.error(err);
-        alert('抽牌失败，请重试');
+    }, 800);
+    
+    // 每隔一段时间执行抽牌飞行动画
+    const flyInterval = setInterval(createFlyingCard, 600);
+
+    try {
+        // 调用 Coze Bot Webhook API
+        const response = await fetch(COZE_CONFIG.WEBHOOK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${COZE_CONFIG.BEARER_TOKEN}`
+            },
+            body: JSON.stringify({
+                spread_type: selectedSpread,
+                card_count: spreadConfig.cards,
+                question: question || "通用占卜",
+                timestamp: Date.now()
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error(`API request failed: ${response.status}`);
+        }
+
+        const responseText = await response.text();
+        const result = extractJsonFromResponse(responseText);
+
+        clearInterval(messageInterval);
+        clearInterval(flyInterval);
+        drawingSection.classList.remove('shuffling');
+        
+        if (result && result.success) {
+            setTimeout(() => showResult(result, question), 500);
+        } else {
+            throw new Error(result?.error || '抽牌结果解析失败');
+        }
+    } catch (err) {
+        console.error('抽牌错误:', err);
+        clearInterval(messageInterval);
+        clearInterval(flyInterval);
+        drawingSection.classList.remove('shuffling');
+        alert(`抽牌失败: ${err.message || '请重试'}`);
         location.reload();
-    });
+    }
 };
 
 // 显示结果
@@ -133,23 +281,35 @@ function showResult(data, question) {
     data.cards.forEach((card, index) => {
         const cardEl = document.createElement('div');
         cardEl.className = 'tarot-card';
+        cardEl.style.animationDelay = (index * 0.3) + 's';
+        
         const elementSymbol = getElementSymbol(card.name);
-        const statusText = card.is_reversed ? '↻ 逆位' : '✧ 正位';
+        const isReversed = card.position === '逆位' || card.is_reversed;
+        const statusText = isReversed ? '↻ 逆位' : '✧ 正位';
         
         cardEl.innerHTML = `
             <div class="card-corner top-left">${elementSymbol}</div>
             <div class="card-corner top-right">${elementSymbol}</div>
-            <div class="card-position">${card.position}</div>
+            <div class="card-position">${card.position_name || card.position || '未知位置'}</div>
             <div class="card-divider"></div>
             <div class="card-name">${card.name}</div>
             <div class="card-status">${statusText}</div>
             <div class="card-divider"></div>
-            <div class="card-meaning">${card.is_reversed ? card.reversed || card.meaning : card.meaning}</div>
+            <div class="card-meaning">${card.meaning || '塔罗牌的神秘寓意'}</div>
             <div class="card-corner bottom-left">${elementSymbol}</div>
             <div class="card-corner bottom-right">${elementSymbol}</div>
         `;
+        
         cardsDisplay.appendChild(cardEl);
+        
+        // 为每张牌添加翻开时的闪光特效
+        setTimeout(() => {
+            createFlash(cardEl);
+        }, 800 + index * 300);
     });
 
-    document.getElementById('reading').textContent = data.reading;
+    // 解读文字延迟显示 - 使用 marked 解析 Markdown
+    setTimeout(() => {
+        document.getElementById('reading').innerHTML = marked.parse(data.reading);
+    }, data.cards.length * 300 + 500);
 }
