@@ -1,6 +1,6 @@
 """
-塔罗牌解读模块
-包含完整的解读逻辑和文案生成
+塔罗牌解读模块 - V4.0 结构化输出
+包含完整的解读逻辑和结构化文案生成
 """
 import random
 from datetime import datetime
@@ -13,7 +13,6 @@ def analyze_elements(cards):
     major_count = 0
     
     for card in cards:
-        element = card.get("element", "")
         card_name = card["name"]
         
         # 小阿卡纳：根据牌名判断元素
@@ -26,8 +25,9 @@ def analyze_elements(cards):
         elif "星币" in card_name:
             elements["土"] += 1
         else:
-            # 大阿卡纳：使用预定义的元素属性
+            # 大阿卡纳
             major_count += 1
+            element = card.get("element", "")
             if element == "火":
                 elements["火"] += 1
             elif element == "水":
@@ -52,151 +52,176 @@ def get_vibe_check(elements, major_count, cards):
     element_percent = {k: round(v/total*100) for k, v in elements.items()}
     
     vibe_descriptions = {
-        "火": f"🔥 火元素主导 ({element_percent['火']}%) - 能量充沛，行动力强，热情正在燃烧",
-        "水": f"💧 水元素主导 ({element_percent['水']}%) - 情感流动，直觉敏锐，心灵正在苏醒",
-        "风": f"💨 风元素主导 ({element_percent['风']}%) - 思维清晰，沟通顺畅，心智正在扩展",
-        "土": f"🌍 土元素主导 ({element_percent['土']}%) - 根基稳固，物质丰盈，现实正在显化"
+        "火": f"🔥 **火元素主导 ({element_percent['火']}%)** - 能量充沛，行动力强，热情正在燃烧。现在是采取行动的好时机！",
+        "水": f"💧 **水元素主导 ({element_percent['水']}%)** - 情感流动，直觉敏锐，心灵正在苏醒。倾听内心的声音。",
+        "风": f"💨 **风元素主导 ({element_percent['风']}%)** - 思维清晰，沟通顺畅，心智正在扩展。是学习和交流的好时期。",
+        "土": f"🌍 **土元素主导 ({element_percent['土']}%)** - 根基稳固，物质丰盈，现实正在显化。适合落地执行计划。"
     }
     
-    major_vibe = f"\n\n✧ 大阿卡纳出现 {major_count} 张 - "
+    major_note = f"\n\n大阿卡纳出现 **{major_count}张** - "
     if major_count >= len(cards) * 0.5:
-        major_vibe += "重大课题正在展开，这是灵魂成长的关键时期"
+        major_note += "重大课题正在展开，这是灵魂成长的关键时期！"
     else:
-        major_vibe += "日常能量在运作，细微之处见真谛"
+        major_note += "日常能量在运作，细微之处见真谛。"
     
-    return vibe_descriptions[dominant] + major_vibe
+    return vibe_descriptions[dominant] + major_note
 
 
 def interpret_single_card(card, position):
-    """单张牌的散文式解读"""
-    meaning = card["reversed"] if card.get("is_reversed", False) and card.get("reversed") else card["meaning"]
+    """单张牌的解读"""
+    meaning = card.get("reversed") if card.get("is_reversed", False) and card.get("reversed") else card.get("meaning", "塔罗牌的神秘寓意")
     status = "逆位" if card.get("is_reversed", False) else "正位"
     
-    templates = [
-        f"在「{position}」的位置上，「{card['name']}」以{status}的姿态呈现。{meaning}。这股能量正在你的生命中编织着某种方式运作。",
-        f"「{card['name']}」出现在「{position}」——{status}能量的智慧正在向你低语。{meaning}。",
-        f"「{position}」的能量中心是「{card['name']}」，{status}状态下的启示：{meaning}。"
+    return f"**「{card['name']}」{status}** - {meaning}"
+
+
+def get_action_suggestions(cards, dominant_element):
+    """生成行动建议"""
+    suggestions = [
+        "保持正念，每天花10分钟冥想静心，与内在智慧连接",
+        "记录梦境和直觉闪现，它们正在传递重要信息",
+        "相信宇宙的时机，不要急于求成，让事情自然发展",
+        "与信任的朋友分享你的感受，倾诉本身就是治愈"
     ]
     
-    return random.choice(templates)
+    # 根据元素添加特定建议
+    element_suggestions = {
+        "火": [
+            "将热情转化为具体行动，从最小的一步开始",
+            "进行体育锻炼，释放过剩的能量",
+            "开展创意项目，让灵感自由流动"
+        ],
+        "水": [
+            "允许自己感受所有情绪，不要压抑",
+            "进行与水相关的活动：洗澡、游泳、听雨",
+            "滋养亲密关系，给予和接受爱"
+        ],
+        "风": [
+            "阅读、学习、写作，扩展心智边界",
+            "与他人进行深度对话，交换观点",
+            "制定计划，理清思路，分步骤执行"
+        ],
+        "土": [
+            "关注财务状况，制定预算和储蓄计划",
+            "照顾身体健康，注意饮食和休息",
+            "脚踏实地，一步一个脚印地推进目标"
+        ]
+    }
+    
+    suggestions = element_suggestions.get(dominant_element, suggestions)
+    selected = random.sample(suggestions, min(3, len(suggestions)))
+    
+    return "\n".join([f"- {s}" for s in selected])
+
+
+def get_potential_obstacles(cards):
+    """识别潜在阻碍"""
+    obstacles = [
+        "自我怀疑和限制性信念可能阻碍前进",
+        "过度思虑导致行动迟缓",
+        "害怕改变而停留在舒适区",
+        "外部环境的干扰分散注意力"
+    ]
+    
+    # 检查是否有逆位牌
+    reversed_count = sum(1 for card in cards if card.get("is_reversed", False))
+    if reversed_count >= len(cards) * 0.5:
+        obstacles.insert(0, "较多逆位牌显示当前能量有阻滞，需要更多耐心和内省")
+    
+    selected = random.sample(obstacles, min(2, len(obstacles)))
+    
+    return "\n".join([f"- {o}" for o in selected])
+
+
+def get_timing_guidance(cards):
+    """时机与运势提示"""
+    now = datetime.now()
+    lunar_phase = "🌙" if now.day < 15 else "🌕"
+    
+    guidances = [
+        f"当前宇宙能量正在支持你的成长。{lunar_phase} 月亮周期提醒我们：万物都有其自然节奏。",
+        "接下来的两周是关键时期，保持开放和觉知，机会可能在意想不到的时候出现。",
+        "相信你已经准备好了，宇宙正在为你安排最好的一切。耐心等待，答案自会显现。",
+        "现在是播种的好时机，你所付出的努力将在未来结出丰硕的果实。"
+    ]
+    
+    return random.choice(guidances)
+
+
+def get_core_insight(cards, spread_name):
+    """核心启示"""
+    if len(cards) == 1:
+        card = cards[0]
+        meaning = card.get("meaning", "塔罗牌的神秘寓意")
+        return f"**「{card['name']}」**的出现绝非偶然。{meaning} 这是宇宙传递给你的特别讯息，倾听内在的声音，相信直觉的指引。"
+    
+    first_card = cards[0]
+    last_card = cards[-1]
+    
+    insights = [
+        f"从**「{first_card['name']}」**带来的课题，走向**「{last_card['name']}」**的启示——你正在经历一场深刻的内在旅程。",
+        f"牌阵核心揭示：**{spread_name}**的能量正在为你揭示深层的真相，邀请你以全新的视角看待当下的处境。",
+        f"每张牌都是灵魂的一面镜子。现在是整合这些能量，发现内在智慧的关键时刻。"
+    ]
+    
+    return random.choice(insights)
 
 
 def generate_reading(cards, spread_name, question=""):
-    """生成完整的深度解读"""
+    """生成完整的结构化深度解读 - V4.0"""
     elements, major_count = analyze_elements(cards)
+    dominant = get_dominant_element(elements)
     
-    reading = f"""
-> ✧ 首席塔罗解读 ✧
-> **牌阵：{spread_name}**
-> **时间：{datetime.now().strftime("%Y-%m-%d %H:%M:%S")}**
+    reading = f"""---
 
----
-
-## ✧ 灵性共振 ✧
+## ✧ 牌阵整体能量解读 ✧
 
 {get_vibe_check(elements, major_count, cards)}
 
 ---
 
-## ✧ 牌面星图 ✧
+## ✧ 核心启示 ✧
+
+{get_core_insight(cards, spread_name)}
+
+---
+
+## ✧ 各位置牌面解读 ✧
 
 """
     
     # 优雅展示所有牌
     for card in cards:
-        reading += f"\n{interpret_single_card(card, card['position'])}\n\n"
+        position_name = card.get("position_name", card.get("position", "未知位置"))
+        reading += f"\n**📍 {position_name}**\n"
+        reading += f"{interpret_single_card(card, position_name)}\n\n"
     
-    reading += """---
+    reading += f"""---
 
-## ✧ 灵魂指引 ✧
+## ✧ 行动建议 ✧
 
-"""
-    
-    # 根据牌阵类型生成解读
-    dominant = get_dominant_element(elements)
-    
-    if len(cards) == 3:  # 圣三角
-        past_card = cards[0]
-        present_card = cards[1]
-        future_card = cards[2]
-        
-        reading += f"""
-### **时光之流**
-
-从 **{past_card['name']}** 带来的课题，走到当下 **{present_card['name']}** 的状态——你已经走了很长的路。过去的经历如同刻在灵魂上的印记，塑造了今天看世界的眼睛。
-
-而前方，**{future_card['name']}** 的能量正在等待着你。这不是一个终点，而是灵魂邀请你进入下一个阶段的邀请函。
+{get_action_suggestions(cards, dominant)}
 
 ---
 
-### **大师箴言**
+## ✧ 潜在阻碍 ✧
 
-1. **接纳当下的状态** —— 无论现在看起来是好是坏，这都是你旅途中必经的风景。每一张牌都有它出现的意义。
-2. **与过去和解** —— 那些你以为放不下的人和事，其实早已准备好离你而去，只等你轻轻挥手。
-3. **勇敢向前迈步** —— 未来的牌已经准备好了，你只需要伸出手，接住宇宙为你准备的礼物。
-
-"""
-    elif len(cards) == 4:  # 四元素/时间流专属逻辑
-        reading += f"""
-### ✧ 元素四象 ✧
-
-**{cards[0]['name']}** 代表着你当下的根基能量。{cards[0]['position']}的能量正在奠定你当前的基础，这股力量决定了你接下来旅程的起点。
-
-**{cards[1]['name']}** 揭示着你内心的火焰与热情。{cards[1]['position']}的能量映射出你的驱动力和渴望，告诉你什么在真正地激发着你的生命力。
-
-**{cards[2]['name']}** 显示着你需要面对的挑战。{cards[2]['position']}的能量呈现出你旅途中的障碍与课题，每一个挑战都是成长的机会。
-
-**{cards[3]['name']}** 指引着你未来的可能性。{cards[3]['position']}的能量展示出你前方道路的风景，以及你可以如何与这些能量合作。
+{get_potential_obstacles(cards)}
 
 ---
 
-### **大师箴言**
+## ✧ 时机与运势 ✧
 
-1. **四元素协同** —— 火水风土并非孤立存在，它们在你的生命中舞蹈，共同编织着你的命运之网。
-2. **根基决定高度** —— 第一张牌揭示的根基越稳固，你就能走得越远。
-3. **拥抱完整** —— 无论是看似"好"还是"坏"的牌，它们都是你完整自我的一部分。
-
-"""
-    elif len(cards) >= 5:  # 复杂牌阵
-        reading += f"""
-### **核心羁绊**
-
-**{cards[0]['name']}** 与 **{cards[1]['name']}** 的能量正在你的生命中上演一场深刻的对话。
-
-这不是简单的因果关系，而是更深层次的灵魂课题——你内心的某个部分，正在通过这两张牌的碰撞，让你看到自己未曾觉察的真相。当下以{dominant}元素为主导的能量场，为这个课题提供了独特的解决视角。
+{get_timing_guidance(cards)}
 
 ---
 
-### **大师箴言**
-
-1. **暂停，而非停止** —— 有些时候，"不动"比"动"需要更大的勇气。允许自己停在原地，直到你听见内心真正的声音。
-2. **倾听身体的智慧** —— 你的感受永远比你的头脑更接近真相。紧绷、放松、喜悦、悲伤——身体从不说谎。
-3. **相信宇宙的时机** —— 该发生的，不会早一秒，也不会晚一秒。所有的等待，都有它神圣的理由。
-
-"""
-    else:  # 单张牌
-        reading += f"""
-### **当下的启示**
-
-**{cards[0]['name']}** 的出现绝非偶然。这张牌带着宇宙的讯息来到你面前，不是为了告诉你一个标准答案，而是为了唤醒你内在深处早已知道的那个部分。
-
-{dominant}元素的能量正在支持你，邀请你以全新的视角看待当下的处境。
-
----
-
-### **大师箴言**
-
-1. **向内看，答案就在那里** —— 所有你需要的智慧，从来都不在外面，而在你之内。
-2. **信任第一念** —— 你看到牌的那一瞬间，脑海中浮现的第一个想法，往往就是最准确的答案。
-3. **保持开放** —— 宇宙比你想象的更爱你，它为你准备的，往往超出你所能想象。
-
-"""
-    
-    reading += """
----
-
-> ✧ 愿星光照亮你的道路，愿智慧指引你的心灵 ✧
+> ✧ **愿星光照亮你的道路，愿智慧指引你的心灵** ✧
 > *塔罗展示的是当下的能量轨迹，你永远是自己命运的书写者*
+
+---
+
+⚠️ **仅供娱乐参考，请理性对待**
 """
     
     return reading

@@ -16,6 +16,8 @@ generateStars();
 
 // 全局状态
 let selectedSpread = null;
+let currentReading = null;
+let selectedCardForModal = null;
 
 // 牌阵数据
 const spreads = {
@@ -45,12 +47,11 @@ function renderSpreads() {
             <div class="spread-desc">${spread.description}</div>
             <div class="spread-meta">
                 <span>🎴 ${spread.cards}张牌</span>
-                <span>📍 ${spread.positions}个位置</span>
             </div>
         `;
         card.onclick = () => selectSpread(key, card);
         grid.appendChild(card);
-    });
+    };
 }
 renderSpreads();
 
@@ -127,7 +128,6 @@ function createFlash(element) {
 function parseCozeStreamResponse(text) {
     const lines = text.split('\n');
     let fullContent = '';
-    let isReadingMode = false;
     
     for (const line of lines) {
         if (line.startsWith('data:')) {
@@ -257,8 +257,68 @@ document.getElementById('startDrawing').onclick = async () => {
     }
 };
 
+// 打开卡牌详情模态框
+function openCardModal(card, positionName) {
+    selectedCardForModal = { ...card, positionName };
+    
+    const modal = document.getElementById('cardModal');
+    const modalContent = document.getElementById('modalCardImage');
+    const element = getCardElement(card.name);
+    
+    const isReversed = card.position === '逆位' || card.is_reversed;
+    
+    // 设置模态框内容
+    modalContent.innerHTML = `
+        <div class="modal-card-image-container ${isReversed ? 'reversed' : ''}">
+            <img src="${generateCardSVG(card.name)}" alt="${card.name}" class="modal-card-img">
+        </div>
+        <div class="modal-card-info">
+            <h2 class="modal-card-name">${card.name}</h2>
+            <div class="modal-card-position-badge ${isReversed ? 'reversed' : ''}">
+                ${isReversed ? '↻ 逆位' : '✧ 正位'}
+            </div>
+            <div class="modal-card-element">
+                <span class="element-symbol" style="color: ${element.color}">${element.symbol}</span>
+                <span class="element-name">${element.name}元素</span>
+            </div>
+            <div class="modal-position-name">
+                <strong>位置：</strong>${positionName || '未知位置'}
+            </div>
+            <div class="modal-keywords">
+                <strong>关键词：</strong>${card.keywords || '神秘、启示、指引'}
+            </div>
+            <div class="modal-meaning">
+                <h4>${isReversed && card.reversed_meaning || card.meaning}</h4>
+            </div>
+            <div class="modal-detailed">
+                <h4>📜 详细解读</h4>
+                <p>${card.detailed_reading || '这张牌邀请你深入探索内心的智慧，相信宇宙的指引正在为你揭示隐藏的真相。每一张牌都有它出现的意义，是灵魂正在通过这张牌向你传递重要的讯息。'}</p>
+            </div>
+        </div>
+    `;
+    
+    modal.classList.add('active');
+}
+
+// 关闭模态框
+document.getElementById('closeModal').onclick = () => {
+    document.getElementById('cardModal').classList.remove('active');
+};
+
+// 点击模态框背景关闭
+document.getElementById('cardModal').onclick = (e) => {
+    if (e.target.id === 'cardModal') {
+        document.getElementById('cardModal').classList.remove('active');
+    }
+};
+
 // 显示结果
 function showResult(data, question) {
+    currentReading = data;
+    currentReading.question = question;
+    currentReading.spreadName = spreads[selectedSpread]?.name || selectedSpread;
+    currentReading.timestamp = new Date().toISOString();
+    
     document.getElementById('drawingSection').style.display = 'none';
     document.getElementById('resultSection').style.display = 'block';
     document.getElementById('step3').classList.remove('active');
@@ -269,35 +329,30 @@ function showResult(data, question) {
     const cardsDisplay = document.getElementById('cardsDisplay');
     cardsDisplay.innerHTML = '';
 
-    // 塔罗元素符号映射
-    const getElementSymbol = (cardName) => {
-        if (cardName.includes('权杖')) return '▴';
-        if (cardName.includes('圣杯')) return '▾';
-        if (cardName.includes('宝剑')) return '▸';
-        if (cardName.includes('星币')) return '◊';
-        return '✧';
-    };
-
     data.cards.forEach((card, index) => {
         const cardEl = document.createElement('div');
-        cardEl.className = 'tarot-card';
-        cardEl.style.animationDelay = (index * 0.3) + 's';
-        
-        const elementSymbol = getElementSymbol(card.name);
         const isReversed = card.position === '逆位' || card.is_reversed;
-        const statusText = isReversed ? '↻ 逆位' : '✧ 正位';
+        const element = getCardElement(card.name);
+        
+        cardEl.className = `tarot-card-v4 ${isReversed ? 'reversed' : 'upright'}`;
+        cardEl.style.animationDelay = (index * 0.3) + 's';
+        cardEl.onclick = () => openCardModal(card, card.position_name || card.position);
         
         cardEl.innerHTML = `
-            <div class="card-corner top-left">${elementSymbol}</div>
-            <div class="card-corner top-right">${elementSymbol}</div>
-            <div class="card-position">${card.position_name || card.position || '未知位置'}</div>
-            <div class="card-divider"></div>
-            <div class="card-name">${card.name}</div>
-            <div class="card-status">${statusText}</div>
-            <div class="card-divider"></div>
-            <div class="card-meaning">${card.meaning || '塔罗牌的神秘寓意'}</div>
-            <div class="card-corner bottom-left">${elementSymbol}</div>
-            <div class="card-corner bottom-right">${elementSymbol}</div>
+            <div class="card-image-container">
+                <img src="${generateCardSVG(card.name)}" alt="${card.name}" class="card-image">
+            </div>
+            <div class="card-info">
+                <div class="card-position-v4">${card.position_name || card.position || '未知位置'}</div>
+                <div class="card-name-v4">${card.name}</div>
+                <div class="card-status-v4">
+                    <span class="status-icon">${isReversed ? '↻' : '✧'}</span>
+                    <span class="status-text">${isReversed ? '逆位' : '正位'}</span>
+                </div>
+                <div class="card-element-v4" style="color: ${element.color}">
+                    ${element.symbol} ${element.name}元素
+                </div>
+            </div>
         `;
         
         cardsDisplay.appendChild(cardEl);
@@ -312,4 +367,139 @@ function showResult(data, question) {
     setTimeout(() => {
         document.getElementById('reading').innerHTML = marked.parse(data.reading);
     }, data.cards.length * 300 + 500);
+    
+    // 保存到历史记录
+    saveToHistory(currentReading);
+    
+    // 显示分享按钮
+    document.getElementById('shareButtons').style.display = 'flex';
 }
+
+// === 历史记录功能 ===
+function saveToHistory(reading) {
+    try {
+        let history = JSON.parse(localStorage.getItem('tarot_history') || '[]');
+        history.unshift(reading);
+        // 只保留最近20条记录
+        if (history.length > 20) {
+            history = history.slice(0, 20);
+        }
+        localStorage.setItem('tarot_history', JSON.stringify(history));
+    } catch (e) {
+        console.error('保存历史记录失败:', e);
+    }
+}
+
+function showHistory() {
+    const history = JSON.parse(localStorage.getItem('tarot_history') || '[]');
+    const modal = document.getElementById('historyModal');
+    const list = document.getElementById('historyList');
+    
+    if (history.length === 0) {
+        list.innerHTML = '<div class="empty-history">暂无占卜记录</div>';
+    } else {
+        list.innerHTML = history.map((item, index) => `
+            <div class="history-item" onclick="loadHistoryItem(${index})">
+                <div class="history-date">${new Date(item.timestamp).toLocaleString('zh-CN')}</div>
+                <div class="history-spread">${item.spreadName}</div>
+                <div class="history-question">${item.question || '通用占卜'}</div>
+                <div class="history-cards">${item.cards.map(c => c.name).join(' · ')}</div>
+            </div>
+        `).join('');
+    }
+    
+    modal.classList.add('active');
+}
+
+function loadHistoryItem(index) {
+    const history = JSON.parse(localStorage.getItem('tarot_history') || '[]');
+    const item = history[index];
+    if (item) {
+        // 隐藏所有步骤
+        document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+        document.getElementById('step4').classList.add('active');
+        
+        // 显示结果
+        document.getElementById('spreadSection').style.display = 'none';
+        document.getElementById('questionSection').style.display = 'none';
+        document.getElementById('drawingSection').style.display = 'none';
+        
+        showResult(item, item.question);
+        
+        // 关闭历史模态框
+        document.getElementById('historyModal').classList.remove('active');
+    }
+}
+
+document.getElementById('closeHistoryModal').onclick = () => {
+    document.getElementById('historyModal').classList.remove('active');
+};
+
+document.getElementById('historyModal').onclick = (e) => {
+    if (e.target.id === 'historyModal') {
+        document.getElementById('historyModal').classList.remove('active');
+    }
+};
+
+// === 每日一抽功能 ===
+function checkDailyDraw() {
+    const today = new Date().toDateString();
+    const lastDraw = localStorage.getItem('daily_draw_date');
+    
+    if (lastDraw === today) {
+        document.getElementById('dailyDrawBtn').textContent = '✨ 今日已抽';
+        document.getElementById('dailyDrawBtn').disabled = true;
+        return true;
+    }
+    return false;
+}
+
+document.getElementById('dailyDrawBtn').onclick = () => {
+    if (checkDailyDraw()) {
+        alert('今日已经抽取过每日运势啦，明天再来吧！');
+        return;
+    }
+    
+    // 直接使用单张牌阵进行每日一抽
+    selectedSpread = 'yes_no';
+    document.getElementById('questionInput').value = '今日运势';
+    
+    // 隐藏历史
+    document.getElementById('spreadSection').style.display = 'none';
+    document.getElementById('questionSection').style.display = 'none';
+    
+    // 开始抽牌
+    document.getElementById('startDrawing').click();
+    
+    // 记录今日已抽
+    localStorage.setItem('daily_draw_date', new Date().toDateString());
+};
+
+// 页面加载时检查每日一抽状态
+checkDailyDraw();
+
+// === 分享功能 ===
+function shareToWeChat() {
+    alert('请截图分享到微信');
+}
+
+function copyLink() {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+        alert('链接已复制到剪贴板！');
+    }).catch(() => {
+        alert('复制失败，请手动复制');
+    });
+}
+
+function generateShareImage() {
+    alert('分享图片生成中...');
+    // 这里可以集成html2canvas等库生成分享图片
+    setTimeout(() => {
+        alert('请截图保存分享图片');
+    }, 1000);
+}
+
+document.getElementById('shareWechat').onclick = shareToWeChat;
+document.getElementById('copyLink').onclick = copyLink;
+document.getElementById('generateImage').onclick = generateShareImage;
