@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎴 塔罗牌占卜系统</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="stars" id="stars"></div>
+
+    <div class="container">
+        <div class="header">
+            <h1 class="title">🎴 塔罗牌占卜系统</h1>
+            <p class="subtitle">连接宇宙能量，探索内心答案</p>
+        </div>
+
+        <div class="step-indicator">
+            <div class="step active" id="step1">
+                <div class="step-number">1</div>
+                <div class="step-label">选择牌阵</div>
+            </div>
+            <div class="step" id="step2">
+                <div class="step-number">2</div>
+                <div class="step-label">输入问题</div>
+            </div>
+            <div class="step" id="step3">
+                <div class="step-number">3</div>
+                <div class="step-label">静心抽牌</div>
+            </div>
+            <div class="step" id="step4">
+                <div class="step-number">4</div>
+                <div class="step-label">深度解读</div>
+            </div>
+        </div>
+
+        <!-- 步骤1：选择牌阵 -->
+        <div class="spread-section" id="spreadSection">
+            <h2 class="section-title">✨ 请选择占卜牌阵</h2>
+            <div class="spread-grid" id="spreadGrid">
+                <!-- 牌阵由JS动态生成 -->
+            </div>
+            <button class="btn-primary" id="nextToQuestion" disabled>下一步：输入问题</button>
+        </div>
+
+        <!-- 步骤2：输入问题 -->
+        <div class="question-section" id="questionSection">
+            <h2 class="section-title">💭 请默念你的问题</h2>
+            <div class="input-card">
+                <label class="input-label">你想问什么问题？（选填，可直接开始占卜）</label>
+                <textarea class="question-input" id="questionInput" placeholder="例如：我最近的感情运势如何？&#10;例如：这份工作适合我吗？&#10;例如：未来三个月的财运怎么样？"></textarea>
+                <div class="question-hint">
+                    💡 提示：问题越具体，解读越有针对性。可以问感情、事业、学业、人际关系等任何方面的问题。
+                </div>
+            </div>
+            <div class="btn-group">
+                <button class="btn-secondary" id="backToSpread">返回选择牌阵</button>
+                <button class="btn-primary" id="startDrawing">开始抽牌 🔮</button>
+            </div>
+        </div>
+
+        <!-- 步骤3：抽牌动画 -->
+        <div class="drawing-section" id="drawingSection">
+            <div class="drawing-animation">🎴</div>
+            <div class="drawing-text">正在连接宇宙能量，请静心等待...</div>
+        </div>
+
+        <!-- 步骤4：结果展示 -->
+        <div class="result-section" id="resultSection">
+            <div class="result-header">
+                <h2 class="result-title">🔮 占卜结果</h2>
+                <p class="result-question" id="resultQuestion"></p>
+            </div>
+
+            <div class="cards-display" id="cardsDisplay">
+                <!-- 牌面由JS动态生成 -->
+            </div>
+
+            <div class="reading-box">
+                <h3 class="reading-title">🧠 深度解读</h3>
+                <div class="reading-content" id="reading"></div>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-primary" onclick="location.reload()">✧ 重新占卜</button>
+            </div>
+
+            <div class="disclaimer">
+                ⚠️ 免责声明：本占卜仅供娱乐和参考，不构成决策建议。命运掌握在自己手中，请相信自己的判断和选择。
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
